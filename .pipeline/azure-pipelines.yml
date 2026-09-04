@@ -1,0 +1,112 @@
+# .pipeline/azure-pipelines.yml — Frontend (React + Vite) — repo "scentia-front"
+# Org: jvaronm | Proyecto: Jhosep_scentia
+# Guarda este archivo como .pipeline/azure-pipelines.yml en el repo scentia-front
+# (ya tienes la carpeta .pipeline creada, solo falta este archivo dentro).
+#
+# Antes de correrlo:
+#   1. Crea el Azure App Service (Web App) con runtime Node.js (sirve el build estático).
+#   2. En Azure DevOps > Project Settings > Service connections, crea una
+#      "Azure Resource Manager" service connection y reemplaza
+#      'TU-SERVICE-CONNECTION' abajo con su nombre exacto.
+#   3. Reemplaza 'TU-APP-SERVICE-FRONTEND' con el nombre real de tu Web App.
+#   4. Ajusta VITE_API_URL al endpoint real de tu backend ya desplegado en Azure.
+#   5. En Azure DevOps > Pipelines > New Pipeline, apunta al repo "scentia-front"
+#      y selecciona "Existing Azure Pipelines YAML file" -> /.pipeline/azure-pipelines.yml
+#   6. Nota: el vercel.json de este repo (rewrites) no se usa aquí — el
+#      equivalente de esa regla SPA se agrega abajo como web.config para IIS/Azure.
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureSubscription: 'TU-SERVICE-CONNECTION'
+  webAppName: 'TU-APP-SERVICE-FRONTEND'
+  nodeVersion: '20.x'
+  VITE_API_URL: 'https://TU-APP-SERVICE-BACKEND.azurewebsites.net'
+
+stages:
+  - stage: Build
+    displayName: 'Build frontend'
+    jobs:
+      - job: Build
+        displayName: 'Instalar dependencias y compilar Vite'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(nodeVersion)
+            displayName: 'Instalar Node.js $(nodeVersion)'
+
+          - script: |
+              npm ci
+            displayName: 'npm ci'
+
+          - script: |
+              npm run build
+            displayName: 'npm run build (genera carpeta dist)'
+            env:
+              VITE_API_URL: $(VITE_API_URL)
+
+          # web.config para que Azure App Service (Windows/IIS Node) sirva
+          # correctamente una SPA con rutas del lado del cliente.
+          - script: |
+              cat > dist/web.config << 'EOF'
+              <?xml version="1.0" encoding="utf-8"?>
+              <configuration>
+                <system.webServer>
+                  <rewrite>
+                    <rules>
+                      <rule name="React Routes" stopProcessing="true">
+                        <match url=".*" />
+                        <conditions logicalGrouping="MatchAll">
+                          <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+                          <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+                        </conditions>
+                        <action type="Rewrite" url="/" />
+                      </rule>
+                    </rules>
+                  </rewrite>
+                </system.webServer>
+              </configuration>
+              EOF
+            displayName: 'Agregar web.config para rutas SPA'
+
+          - task: ArchiveFiles@2
+            displayName: 'Empaquetar dist en zip'
+            inputs:
+              rootFolderOrFile: '$(System.DefaultWorkingDirectory)/dist'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/frontend-$(Build.BuildId).zip'
+              replaceExistingArchive: true
+
+          - publish: '$(Build.ArtifactStagingDirectory)/frontend-$(Build.BuildId).zip'
+            artifact: frontend-drop
+
+  - stage: Deploy
+    displayName: 'Deploy frontend a Azure App Service'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        displayName: 'Deploy a $(webAppName)'
+        environment: 'scentia-hunter-frontend'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: 'Deploy Azure Web App'
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appType: 'webAppLinux'
+                    appName: $(webAppName)
+                    package: '$(Pipeline.Workspace)/frontend-drop/frontend-$(Build.BuildId).zip'
+                    runtimeStack: 'NODE|20-lts'
+                    startUpCommand: 'npx serve -s . -l 8080'

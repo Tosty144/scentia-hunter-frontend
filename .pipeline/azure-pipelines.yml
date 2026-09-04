@@ -24,7 +24,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'TU-SERVICE-CONNECTION'
+  azureSubscription: 'scentia-azure-conn'
   webAppName: 'TU-APP-SERVICE-FRONTEND'
   nodeVersion: '20.x'
   VITE_API_URL: 'https://TU-APP-SERVICE-BACKEND.azurewebsites.net'

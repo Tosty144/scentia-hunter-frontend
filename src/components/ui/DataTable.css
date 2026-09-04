@@ -1,0 +1,51 @@
+.sh-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--sh-border-soft);
+  border-radius: var(--sh-radius-md);
+}
+
+.sh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.sh-table thead th {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sh-ash-dim);
+  font-weight: 500;
+  padding: 13px 18px;
+  background: var(--sh-graphite-2);
+  border-bottom: 1px solid var(--sh-border);
+  white-space: nowrap;
+}
+
+.sh-table tbody td {
+  padding: 14px 18px;
+  color: var(--sh-steel);
+  border-bottom: 1px solid var(--sh-border-soft);
+  vertical-align: middle;
+}
+
+.sh-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sh-table tbody tr {
+  transition: background 0.12s ease;
+}
+.sh-table tbody tr:hover {
+  background: rgba(201, 160, 99, 0.04);
+}
+
+.sh-table-empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--sh-ash-dim);
+  font-size: 13.5px;
+  border: 1px dashed var(--sh-border);
+  border-radius: var(--sh-radius-md);
+}

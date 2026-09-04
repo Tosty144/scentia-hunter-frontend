@@ -1,0 +1,81 @@
+.sh-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.sh-login__glow {
+  position: absolute;
+  width: 640px;
+  height: 640px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 160, 99, 0.14), transparent 65%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.sh-login__card {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.sh-login__logo-ring {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 1px solid var(--sh-gold);
+  box-shadow: 0 0 0 8px rgba(201, 160, 99, 0.06), 0 0 30px rgba(201, 160, 99, 0.12);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.sh-login__logo-ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sh-login__eyebrow {
+  margin-bottom: 4px;
+}
+
+.sh-login__title {
+  font-size: 26px;
+}
+
+.sh-login__subtitle {
+  font-size: 13px;
+  margin: 8px 0 22px;
+  max-width: 32ch;
+}
+
+.sh-login__card .sh-field {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 14px;
+}
+
+.sh-login__submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+}
+
+.sh-login__footnote {
+  margin-top: 18px;
+  font-size: 11px;
+  color: var(--sh-ash-dim);
+  font-family: var(--font-mono);
+}

@@ -1,0 +1,41 @@
+.sh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.sh-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sh-badge--gold {
+  background: var(--sh-gold-soft);
+  border-color: rgba(201, 160, 99, 0.35);
+  color: var(--sh-gold-bright);
+}
+.sh-badge--success {
+  background: rgba(134, 168, 146, 0.12);
+  border-color: rgba(134, 168, 146, 0.3);
+  color: var(--sh-success);
+}
+.sh-badge--danger {
+  background: rgba(181, 103, 90, 0.12);
+  border-color: rgba(181, 103, 90, 0.32);
+  color: var(--sh-danger);
+}
+.sh-badge--neutral {
+  background: var(--sh-graphite-2);
+  border-color: var(--sh-border);
+  color: var(--sh-ash);
+}

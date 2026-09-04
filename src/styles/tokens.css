@@ -1,0 +1,50 @@
+/* ============================================================
+   SCENTIA HUNTER — Design Tokens
+   "El cazador de tu fragancia"
+   Paleta: obsidiana + plata + oro antiguo, destellos blancos mínimos
+   ============================================================ */
+
+:root {
+  /* — Superficie / fondo — */
+  --sh-obsidian: #0a0b0d;       /* fondo base de la app */
+  --sh-graphite: #16181c;       /* superficie de tarjetas/paneles */
+  --sh-graphite-2: #1d2025;     /* superficie elevada / hover */
+  --sh-border: #2a2d33;         /* bordes sutiles */
+  --sh-border-soft: #202226;    /* bordes casi invisibles */
+
+  /* — Plata (texto, iconografía, jerarquía) — */
+  --sh-steel: #cdd2d9;          /* plata primaria — títulos, iconos activos */
+  --sh-ash: #8b909a;            /* plata apagada — texto secundario */
+  --sh-ash-dim: #5c6067;        /* texto terciario / placeholders */
+  --sh-text: #edeef0;           /* texto principal, casi blanco */
+
+  /* — Oro (acento, usar con moderación) — */
+  --sh-gold: #c9a063;           /* oro antiguo — acento primario */
+  --sh-gold-bright: #e9c888;    /* destello / hover de oro */
+  --sh-gold-soft: rgba(201, 160, 99, 0.14);
+  --sh-gold-glow: rgba(201, 160, 99, 0.28);
+
+  /* — Blanco (solo destellos, muy mínimo) — */
+  --sh-spark: #f7f6f2;
+
+  /* — Estado (dentro de la familia tonal, desaturados) — */
+  --sh-success: #86a892;
+  --sh-warning: #c9a063;
+  --sh-danger: #b5675a;
+
+  /* — Tipografía — */
+  --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  /* — Radios y sombras — */
+  --sh-radius-sm: 6px;
+  --sh-radius-md: 10px;
+  --sh-radius-lg: 16px;
+  --sh-shadow-card: 0 1px 0 rgba(255, 255, 255, 0.02) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+  --sh-shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.5);
+
+  /* — Layout — */
+  --sh-sidebar-w: 248px;
+  --sh-topbar-h: 72px;
+}

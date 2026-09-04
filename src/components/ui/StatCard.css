@@ -1,0 +1,42 @@
+.sh-stat {
+  padding: 20px 22px;
+}
+
+.sh-stat__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sh-ash);
+}
+
+.sh-stat__value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--sh-spark);
+  margin-top: 10px;
+  line-height: 1;
+}
+
+.sh-stat__suffix {
+  font-size: 15px;
+  color: var(--sh-ash);
+  margin-left: 6px;
+  font-family: var(--font-body);
+}
+
+.sh-stat__delta {
+  margin-top: 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.sh-stat__delta--up {
+  color: var(--sh-success);
+}
+.sh-stat__delta--down {
+  color: var(--sh-danger);
+}
+.sh-stat__delta--neutral {
+  color: var(--sh-gold);
+}

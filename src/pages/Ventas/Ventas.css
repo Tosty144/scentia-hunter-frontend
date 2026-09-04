@@ -1,0 +1,48 @@
+.sh-sales__totals {
+  display: flex;
+  justify-content: flex-end;
+  gap: 28px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sh-border-soft);
+  font-size: 13px;
+  color: var(--sh-ash);
+}
+.sh-sales__totals strong {
+  color: var(--sh-steel);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  margin-left: 6px;
+}
+.sh-sales__gain {
+  color: var(--sh-gold) !important;
+}
+.sh-sales__ok {
+  color: var(--sh-success);
+  font-size: 13px;
+}
+
+.sh-sales__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sh-sales__preview {
+  display: flex;
+  gap: 16px;
+  background: var(--sh-obsidian);
+  border: 1px solid var(--sh-border-soft);
+  border-radius: var(--sh-radius-md);
+  padding: 16px;
+  margin-top: 4px;
+}
+.sh-sales__preview > div {
+  flex: 1;
+}
+.sh-sales__preview-value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--sh-spark);
+  margin-top: 6px;
+}

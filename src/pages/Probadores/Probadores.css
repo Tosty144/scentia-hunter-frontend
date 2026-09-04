@@ -1,0 +1,72 @@
+.sh-testers__filters {
+  display: flex;
+  gap: 8px;
+}
+
+.sh-testers__chip {
+  background: var(--sh-graphite);
+  border: 1px solid var(--sh-border);
+  color: var(--sh-ash);
+  font-size: 12.5px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sh-testers__chip:hover {
+  color: var(--sh-steel);
+  border-color: var(--sh-ash-dim);
+}
+.sh-testers__chip--active {
+  background: var(--sh-gold-soft);
+  border-color: var(--sh-gold);
+  color: var(--sh-gold-bright);
+}
+
+.sh-testers__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .sh-testers__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .sh-testers__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sh-testers__card {
+  padding: 20px;
+}
+
+.sh-testers__card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.sh-testers__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sh-danger);
+}
+.sh-testers__dot--on {
+  background: var(--sh-gold);
+  box-shadow: 0 0 6px var(--sh-gold-glow);
+}
+
+.sh-testers__name {
+  font-size: 16px;
+}
+
+.sh-testers__family {
+  font-size: 12.5px;
+  color: var(--sh-ash-dim);
+  margin-top: 4px;
+}

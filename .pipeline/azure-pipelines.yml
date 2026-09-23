@@ -21,7 +21,7 @@ trigger:
       - main
 
 pool:
-  vmImage: 'mi-pc-agent'
+  name: 'mi-pc-agent'
 
 variables:
   azureSubscription: 'scentia-azure-conn'
@@ -53,8 +53,9 @@ stages:
 
           # web.config para que Azure App Service (Windows/IIS Node) sirva
           # correctamente una SPA con rutas del lado del cliente.
-          - script: |
-              cat > dist/web.config << 'EOF'
+          # (script PowerShell — compatible con agente self-hosted Windows)
+          - powershell: |
+              $webConfig = @"
               <?xml version="1.0" encoding="utf-8"?>
               <configuration>
                 <system.webServer>
@@ -72,7 +73,8 @@ stages:
                   </rewrite>
                 </system.webServer>
               </configuration>
-              EOF
+              "@
+              Set-Content -Path "dist/web.config" -Value $webConfig
             displayName: 'Agregar web.config para rutas SPA'
 
           - task: ArchiveFiles@2
@@ -96,8 +98,8 @@ stages:
         displayName: 'Deploy a $(webAppName)'
         environment: 'scentia-hunter-frontend'
         pool:
-          vmImage: 'mi-pc-agent'
-        strategy: 
+          name: 'mi-pc-agent'
+        strategy:
           runOnce:
             deploy:
               steps:

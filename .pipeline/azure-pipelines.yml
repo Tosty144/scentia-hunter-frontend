@@ -21,7 +21,7 @@ trigger:
       - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'mi-pc-agent'
 
 variables:
   azureSubscription: 'scentia-azure-conn'
@@ -96,8 +96,8 @@ stages:
         displayName: 'Deploy a $(webAppName)'
         environment: 'scentia-hunter-frontend'
         pool:
-          vmImage: 'ubuntu-latest'
-        strategy:
+          vmImage: 'mi-pc-agent'
+        strategy: 
           runOnce:
             deploy:
               steps:

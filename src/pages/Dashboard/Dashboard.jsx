@@ -6,7 +6,7 @@ import { Loading, ErrorState } from '../../components/ui/AsyncState'
 import { analisisApi } from '../../services/api'
 
 function formatCOP(n) {
-  return n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+  return Number(n || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 }
 
 function Dashboard() {

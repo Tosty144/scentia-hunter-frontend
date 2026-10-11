@@ -1,19 +1,7 @@
 # .pipeline/azure-pipelines.yml — Frontend (React + Vite) — repo "scentia-front"
 # Org: jvaronm | Proyecto: Jhosep_scentia
-# Guarda este archivo como .pipeline/azure-pipelines.yml en el repo scentia-front
-# (ya tienes la carpeta .pipeline creada, solo falta este archivo dentro).
-#
-# Antes de correrlo:
-#   1. Crea el Azure App Service (Web App) con runtime Node.js (sirve el build estático).
-#   2. En Azure DevOps > Project Settings > Service connections, crea una
-#      "Azure Resource Manager" service connection y reemplaza
-#      'TU-SERVICE-CONNECTION' abajo con su nombre exacto.
-#   3. Reemplaza 'TU-APP-SERVICE-FRONTEND' con el nombre real de tu Web App.
-#   4. Ajusta VITE_API_URL al endpoint real de tu backend ya desplegado en Azure.
-#   5. En Azure DevOps > Pipelines > New Pipeline, apunta al repo "scentia-front"
-#      y selecciona "Existing Azure Pipelines YAML file" -> /.pipeline/azure-pipelines.yml
-#   6. Nota: el vercel.json de este repo (rewrites) no se usa aquí — el
-#      equivalente de esa regla SPA se agrega abajo como web.config para IIS/Azure.
+# Corre en el agente self-hosted Windows (pool "mi-pc-agent") y despliega
+# a la Web App de Azure "scentia-hunter-front-jvaronm".
 
 trigger:
   branches:
@@ -25,9 +13,9 @@ pool:
 
 variables:
   azureSubscription: 'scentia-azure-conn'
-  webAppName: 'TU-APP-SERVICE-FRONTEND'
-  nodeVersion: '20.x'
-  VITE_API_URL: 'https://TU-APP-SERVICE-BACKEND.azurewebsites.net'
+  webAppName: 'scentia-hunter-front-jvaronm'
+  nodeVersion: '22.x'
+  VITE_API_URL: 'https://scentia-hunter-back-jvaronm-e5hxf4gmgxc4a3e4.centralus-01.azurewebsites.net'
 
 stages:
   - stage: Build
@@ -50,32 +38,6 @@ stages:
             displayName: 'npm run build (genera carpeta dist)'
             env:
               VITE_API_URL: $(VITE_API_URL)
-
-          # web.config para que Azure App Service (Windows/IIS Node) sirva
-          # correctamente una SPA con rutas del lado del cliente.
-          # (script PowerShell — compatible con agente self-hosted Windows)
-          - powershell: |
-              $webConfig = @"
-              <?xml version="1.0" encoding="utf-8"?>
-              <configuration>
-                <system.webServer>
-                  <rewrite>
-                    <rules>
-                      <rule name="React Routes" stopProcessing="true">
-                        <match url=".*" />
-                        <conditions logicalGrouping="MatchAll">
-                          <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                          <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-                        </conditions>
-                        <action type="Rewrite" url="/" />
-                      </rule>
-                    </rules>
-                  </rewrite>
-                </system.webServer>
-              </configuration>
-              "@
-              Set-Content -Path "dist/web.config" -Value $webConfig
-            displayName: 'Agregar web.config para rutas SPA'
 
           - task: ArchiveFiles@2
             displayName: 'Empaquetar dist en zip'
@@ -110,5 +72,5 @@ stages:
                     appType: 'webAppLinux'
                     appName: $(webAppName)
                     package: '$(Pipeline.Workspace)/frontend-drop/frontend-$(Build.BuildId).zip'
-                    runtimeStack: 'NODE|20-lts'
-                    startUpCommand: 'npx serve -s . -l 8080'
+                    runtimeStack: 'NODE|22-lts'
+                    startUpCommand: 'pm2 serve /home/site/wwwroot --no-daemon --spa'

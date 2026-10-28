@@ -2,6 +2,7 @@
 # Org: jvaronm | Proyecto: Jhosep_scentia
 # Corre en el agente self-hosted Windows (pool "mi-pc-agent") y despliega
 # a la Web App de Azure "scentia-hunter-front-jvaronm".
+# Requiere la variable secreta SONAR_TOKEN en el pipeline (Edit > Variables).
 
 trigger:
   branches:
@@ -24,7 +25,7 @@ stages:
     displayName: 'Build frontend'
     jobs:
       - job: Build
-        displayName: 'Instalar dependencias, probar y compilar Vite'
+        displayName: 'Instalar dependencias, probar, analizar y compilar Vite'
         steps:
           - task: NodeTool@0
             inputs:
@@ -36,8 +37,12 @@ stages:
             displayName: 'npm ci'
 
           - script: |
-              npm test
-            displayName: 'Pruebas unitarias'
+              npm run test:coverage
+            displayName: 'Pruebas con cobertura'
+
+          - script: |
+              npx --yes @sonar/scan -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=$(SONAR_TOKEN)
+            displayName: 'SonarCloud: analizar'
 
           - script: |
               npm run build

@@ -1,8 +1,6 @@
 # .pipeline/azure-pipelines.yml — Frontend (React + Vite) — repo "scentia-front"
-# Org: jvaronm | Proyecto: Jhosep_scentia
-# Corre en el agente self-hosted Windows (pool "mi-pc-agent") y despliega
-# a la Web App de Azure "scentia-hunter-front-jvaronm".
-# Requiere la variable secreta SONAR_TOKEN en el pipeline (Edit > Variables).
+# Etapas: Build -> Package -> Deploy DEV -> Seguridad (ZAP + Lighthouse) -> Deploy QA -> Deploy PROD
+# Requiere: variable secreta SONAR_TOKEN, Docker Desktop y Edge/Chrome en el agente.
 
 trigger:
   branches:
@@ -15,17 +13,25 @@ pool:
 
 variables:
   azureSubscription: 'scentia-azure-conn'
-  webAppName: 'scentia-hunter-front-jvaronm'
   nodeVersion: '22.x'
-  VITE_API_URL: 'https://scentia-hunter-back-jvaronm-e5hxf4gmgxc4a3e4.centralus-01.azurewebsites.net'
   HUSKY: 0
+  VITE_API_URL: 'https://scentia-hunter-back-jvaronm-e5hxf4gmgxc4a3e4.centralus-01.azurewebsites.net'
+  # Web Apps por ambiente (al inicio las tres son la misma app)
+  webAppDev: 'scentia-hunter-front-jvaronm'
+  webAppQa: 'scentia-hunter-front-jvaronm'
+  webAppProd: 'scentia-hunter-front-jvaronm'
+  # URL pública del frontend en DEV (la que escanean ZAP y Lighthouse)
+  devUrl: 'https://scentia-hunter-front-jvaronm-a5bvexccb4c3g6dy.centralus-01.azurewebsites.net'
+  # Navegador para Lighthouse (Edge; cambia a la ruta de Chrome si prefieres)
+  chromePath: 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
 
 stages:
+  # ───────────── 1. COMPILE / BUILD ─────────────
   - stage: Build
-    displayName: 'Build frontend'
+    displayName: '1. Compile / Build'
     jobs:
       - job: Build
-        displayName: 'Instalar dependencias, probar, analizar y compilar Vite'
+        displayName: 'Instalar, lint, probar con coverage, analizar y compilar'
         steps:
           - task: NodeTool@0
             inputs:
@@ -37,8 +43,27 @@ stages:
             displayName: 'npm ci'
 
           - script: |
+              npm run lint
+            displayName: 'Lint (ESLint)'
+            continueOnError: true
+
+          - script: |
               npm run test:coverage
             displayName: 'Pruebas con cobertura'
+
+          - task: PublishTestResults@2
+            displayName: 'Publicar resultados de pruebas'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'out/junit.xml'
+              searchFolder: '$(System.DefaultWorkingDirectory)'
+
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publicar code coverage'
+            condition: succeededOrFailed()
+            inputs:
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/out/coverage/cobertura-coverage.xml'
 
           - script: |
               npx --yes @sonar/scan -Dsonar.host.url=https://sonarcloud.io -Dsonar.token=$(SONAR_TOKEN)
@@ -50,10 +75,28 @@ stages:
             env:
               VITE_API_URL: $(VITE_API_URL)
 
+          - publish: '$(System.DefaultWorkingDirectory)/dist'
+            artifact: frontend-dist
+            displayName: 'Publicar dist'
+
+  # ───────────── 2. PACKAGE ─────────────
+  - stage: Package
+    displayName: '2. Package'
+    dependsOn: Build
+    jobs:
+      - job: Package
+        displayName: 'Empaquetar frontend'
+        steps:
+          - checkout: none
+
+          - download: current
+            artifact: frontend-dist
+            displayName: 'Descargar dist'
+
           - task: ArchiveFiles@2
             displayName: 'Empaquetar dist en zip'
             inputs:
-              rootFolderOrFile: '$(System.DefaultWorkingDirectory)/dist'
+              rootFolderOrFile: '$(Pipeline.Workspace)/frontend-dist'
               includeRootFolder: false
               archiveType: 'zip'
               archiveFile: '$(Build.ArtifactStagingDirectory)/frontend-$(Build.BuildId).zip'
@@ -62,26 +105,156 @@ stages:
           - publish: '$(Build.ArtifactStagingDirectory)/frontend-$(Build.BuildId).zip'
             artifact: frontend-drop
 
-  - stage: Deploy
-    displayName: 'Deploy frontend a Azure App Service'
-    dependsOn: Build
+  # ───────────── 3. DEPLOY DEV ─────────────
+  - stage: DeployDEV
+    displayName: '3. Deploy - DEV'
+    dependsOn: Package
     condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - deployment: Deploy
-        displayName: 'Deploy a $(webAppName)'
-        environment: 'scentia-hunter-frontend'
-        pool:
-          name: 'mi-pc-agent'
+        displayName: 'Deploy a $(webAppDev)'
+        environment: 'scentia-front-dev'
         strategy:
           runOnce:
             deploy:
               steps:
                 - task: AzureWebApp@1
-                  displayName: 'Deploy Azure Web App'
+                  displayName: 'Deploy Azure Web App (DEV)'
                   inputs:
                     azureSubscription: $(azureSubscription)
                     appType: 'webAppLinux'
-                    appName: $(webAppName)
+                    appName: $(webAppDev)
+                    package: '$(Pipeline.Workspace)/frontend-drop/frontend-$(Build.BuildId).zip'
+                    runtimeStack: 'NODE|22-lts'
+                    startUpCommand: 'pm2 serve /home/site/wwwroot --no-daemon --spa'
+
+  # ───────────── 4. SEGURIDAD (ZAP) Y LIGHTHOUSE ─────────────
+  - stage: Security
+    displayName: '4. Seguridad (ZAP) y Lighthouse - DEV'
+    dependsOn: DeployDEV
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: ZAP
+        displayName: 'OWASP ZAP baseline scan'
+        steps:
+          - checkout: none
+
+          - powershell: |
+              $url = '$(devUrl)'
+              for ($i = 1; $i -le 6; $i++) {
+                try {
+                  $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 60
+                  Write-Host ('OK ' + $r.StatusCode)
+                  break
+                } catch {
+                  Write-Host ('Intento ' + $i + ' fallido, reintentando...')
+                  Start-Sleep -Seconds 10
+                }
+              }
+            displayName: 'Despertar la app (warm-up)'
+
+          - script: |
+              if not exist "$(Build.ArtifactStagingDirectory)\zap" mkdir "$(Build.ArtifactStagingDirectory)\zap"
+              docker run --rm -v "$(Build.ArtifactStagingDirectory)\zap:/zap/wrk/:rw" ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t $(devUrl) -r zap-report.html -I
+            displayName: 'ZAP: baseline scan'
+
+          - publish: '$(Build.ArtifactStagingDirectory)/zap'
+            artifact: zap-report
+            displayName: 'Publicar reporte ZAP'
+            condition: succeededOrFailed()
+
+      - job: Lighthouse
+        displayName: 'Lighthouse'
+        steps:
+          - checkout: none
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(nodeVersion)
+            displayName: 'Instalar Node.js $(nodeVersion)'
+
+          - powershell: |
+              $url = '$(devUrl)'
+              for ($i = 1; $i -le 6; $i++) {
+                try {
+                  $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 60
+                  Write-Host ('OK ' + $r.StatusCode)
+                  break
+                } catch {
+                  Write-Host ('Intento ' + $i + ' fallido, reintentando...')
+                  Start-Sleep -Seconds 10
+                }
+              }
+            displayName: 'Despertar la app (warm-up)'
+
+          - script: |
+              if not exist "$(Build.ArtifactStagingDirectory)\lighthouse" mkdir "$(Build.ArtifactStagingDirectory)\lighthouse"
+              npx --yes lighthouse $(devUrl) --output=html --output=json --output-path="$(Build.ArtifactStagingDirectory)\lighthouse\lighthouse" --chrome-flags="--headless=new --no-sandbox --disable-gpu" --quiet
+            displayName: 'Lighthouse: auditoría'
+            continueOnError: true
+            env:
+              CHROME_PATH: $(chromePath)
+
+          - powershell: |
+              $f = Get-ChildItem "$(Build.ArtifactStagingDirectory)\lighthouse\*.json" | Select-Object -First 1
+              if ($f) {
+                $j = Get-Content $f.FullName -Raw | ConvertFrom-Json
+                foreach ($c in $j.categories.PSObject.Properties) {
+                  Write-Host ($c.Value.title + ': ' + [math]::Round($c.Value.score * 100))
+                }
+              }
+            displayName: 'Lighthouse: puntajes'
+            condition: succeededOrFailed()
+
+          - publish: '$(Build.ArtifactStagingDirectory)/lighthouse'
+            artifact: lighthouse-report
+            displayName: 'Publicar reporte Lighthouse'
+            condition: succeededOrFailed()
+
+  # ───────────── 5. DEPLOY QA ─────────────
+  - stage: DeployQA
+    displayName: '5. Deploy - QA'
+    dependsOn: DeployDEV
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Deploy
+        displayName: 'Deploy a $(webAppQa)'
+        environment: 'scentia-front-qa'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: 'Deploy Azure Web App (QA)'
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appType: 'webAppLinux'
+                    appName: $(webAppQa)
+                    package: '$(Pipeline.Workspace)/frontend-drop/frontend-$(Build.BuildId).zip'
+                    runtimeStack: 'NODE|22-lts'
+                    startUpCommand: 'pm2 serve /home/site/wwwroot --no-daemon --spa'
+
+  # ───────────── 6. DEPLOY PROD ─────────────
+  - stage: DeployPROD
+    displayName: '6. Deploy - PROD'
+    dependsOn:
+      - DeployQA
+      - Security
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Deploy
+        displayName: 'Deploy a $(webAppProd)'
+        environment: 'scentia-front-prod'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureWebApp@1
+                  displayName: 'Deploy Azure Web App (PROD)'
+                  inputs:
+                    azureSubscription: $(azureSubscription)
+                    appType: 'webAppLinux'
+                    appName: $(webAppProd)
                     package: '$(Pipeline.Workspace)/frontend-drop/frontend-$(Build.BuildId).zip'
                     runtimeStack: 'NODE|22-lts'
                     startUpCommand: 'pm2 serve /home/site/wwwroot --no-daemon --spa'
